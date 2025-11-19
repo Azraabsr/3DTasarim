@@ -1,2 +1,2 @@
-# GLB dosyalarını Git LFS ile yönet
-*.glb filter=lfs diff=lfs merge=lfs -text
+# GLB dosyaları normal dosya olarak yönet (Vercel için)
+# *.glb filter=lfs diff=lfs merge=lfs -text
