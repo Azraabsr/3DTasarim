@@ -1220,6 +1220,14 @@
             }
             loader = new GLTFLoaderClass();
             
+            // FileLoader'ı yapılandır (CORS için)
+            if (loader.manager) {
+                loader.manager.setURLModifier((url) => {
+                    // GitHub Releases linklerini olduğu gibi bırak
+                    return url;
+                });
+            }
+            
             // Raycaster
   raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
@@ -1249,7 +1257,7 @@
 }
 
         // Product loading
-        async function loadProduct(product) {
+        function loadProduct(product) {
             showLoading(true);
             
             // Dosya yolunu düzelt - Vercel'de root'tan başla
@@ -1261,52 +1269,12 @@
                 }
             }
             
-            // GitHub Releases veya external URL'ler için fetch ile indirip blob URL oluştur
-            let finalModelPath = modelPath;
-            if (modelPath.startsWith('http://') || modelPath.startsWith('https://')) {
-                try {
-                    updateBottomInfo('Model indiriliyor...');
-                    console.log('Fetch başlatılıyor:', modelPath);
-                    
-                    // GitHub Releases için özel fetch ayarları
-                    const fetchOptions = {
-                        method: 'GET',
-                        mode: 'cors', // CORS modu
-                        cache: 'no-cache',
-                        headers: {
-                            'Accept': 'application/octet-stream, */*'
-                        }
-                    };
-                    
-                    const response = await fetch(modelPath, fetchOptions);
-                    console.log('Fetch response:', response.status, response.statusText, response.headers);
-                    
-                    if (!response.ok) {
-                        const errorText = await response.text().catch(() => 'Response body okunamadı');
-                        console.error('HTTP Error Response:', errorText);
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}. URL: ${modelPath}`);
-                    }
-                    
-                    const blob = await response.blob();
-                    console.log('Blob oluşturuldu:', blob.size, 'bytes, type:', blob.type);
-                    finalModelPath = URL.createObjectURL(blob);
-                    console.log('Model blob URL oluşturuldu:', finalModelPath);
-                } catch (fetchError) {
-                    console.error('Fetch hatası detayları:', {
-                        error: fetchError,
-                        message: fetchError.message,
-                        stack: fetchError.stack,
-                        url: modelPath
-                    });
-                    showLoading(false);
-                    showNotification('Model indirilemedi: ' + fetchError.message, 'error');
-                    throw fetchError;
-                }
-            }
+            console.log('Model yükleniyor:', modelPath);
             
+            // GLTFLoader CORS'u handle edebilir, doğrudan URL'yi kullan
             return new Promise((resolve, reject) => {
                 loader.load(
-                    finalModelPath,
+                    modelPath,
                     (gltf) => {
                         const model = gltf.scene || gltf.scenes[0];
                         
