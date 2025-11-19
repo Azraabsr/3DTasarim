@@ -1,0 +1,9 @@
+{
+  "name": "3d-bahce-tasarimcisi",
+  "version": "1.0.0",
+  "description": "3D Bahçe Tasarımcısı - AR/VR ile ürün görüntüleme",
+  "scripts": {
+    "build": "git lfs pull"
+  }
+}
+
