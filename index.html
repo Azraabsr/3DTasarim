@@ -2060,8 +2060,11 @@ const selectedInfo = document.getElementById('selectedInfo');
                 }
                 
                 // Find product in products array or create from HTML
+                console.log('Aranan productId:', productId, 'Products array:', products);
                 let product = products.find(p => p.id === productId);
+                console.log('Bulunan product:', product);
                 if (!product) {
+                    console.warn('Product bulunamadı, HTML\'den oluşturuluyor');
                     product = {
                         id: productId || `product-${index + 1}`,
                         name: name,
@@ -2069,6 +2072,8 @@ const selectedInfo = document.getElementById('selectedInfo');
                         model: model,
                         thumbnail: item.querySelector('img')?.src || ''
                     };
+                } else {
+                    console.log('Product bulundu, model:', product.model);
                 }
                 
                 // Add click event directly
@@ -2088,7 +2093,7 @@ const selectedInfo = document.getElementById('selectedInfo');
                 // Add hover effect
                 item.style.cursor = 'pointer';
                 
-                console.log(`Ürün ${index + 1} hazır: ${name} (${model})`);
+                console.log(`Ürün ${index + 1} hazır: ${name} (${product.model})`);
             });
             
             console.log(`Ürün kataloğu hazır: ${productItems.length} ürün!`);
