@@ -1249,7 +1249,7 @@
 }
 
         // Product loading
-        function loadProduct(product) {
+        async function loadProduct(product) {
             showLoading(true);
             
             // Dosya yolunu düzelt - Vercel'de root'tan başla
@@ -1261,9 +1261,29 @@
                 }
             }
             
+            // GitHub Releases veya external URL'ler için fetch ile indirip blob URL oluştur
+            let finalModelPath = modelPath;
+            if (modelPath.startsWith('http://') || modelPath.startsWith('https://')) {
+                try {
+                    updateBottomInfo('Model indiriliyor...');
+                    const response = await fetch(modelPath);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    const blob = await response.blob();
+                    finalModelPath = URL.createObjectURL(blob);
+                    console.log('Model blob URL oluşturuldu:', finalModelPath);
+                } catch (fetchError) {
+                    console.error('Fetch hatası:', fetchError);
+                    showLoading(false);
+                    showNotification('Model indirilemedi: ' + fetchError.message, 'error');
+                    throw fetchError;
+                }
+            }
+            
             return new Promise((resolve, reject) => {
                 loader.load(
-                    modelPath,
+                    finalModelPath,
                     (gltf) => {
                         const model = gltf.scene || gltf.scenes[0];
                         
@@ -1302,6 +1322,10 @@
                         showLoading(false);
                         console.error('Model yükleme hatası:', error);
                         showNotification('Model yüklenemedi: ' + product.name, 'error');
+                        // Blob URL'yi temizle
+                        if (finalModelPath.startsWith('blob:')) {
+                            URL.revokeObjectURL(finalModelPath);
+                        }
                         reject(error);
                     }
                 );
