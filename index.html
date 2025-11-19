@@ -1257,7 +1257,7 @@
 }
 
         // Product loading
-        async function loadProduct(product) {
+        function loadProduct(product) {
             showLoading(true);
             
             // Dosya yolunu düzelt - Vercel'de root'tan başla
@@ -1271,58 +1271,10 @@
             
             console.log('Model yükleniyor:', modelPath);
             
-            // GitHub Releases veya external URL'ler için fetch ile indirip blob URL oluştur
-            let finalModelPath = modelPath;
-            if (modelPath.startsWith('http://') || modelPath.startsWith('https://')) {
-                try {
-                    updateBottomInfo('Model indiriliyor...');
-                    console.log('Fetch başlatılıyor:', modelPath);
-                    
-                    // GitHub Releases için fetch - CORS sorununu aşmak için
-                    // Önce no-cors modunda deneyelim (CORS header'ları olmadan)
-                    let response;
-                    try {
-                        response = await fetch(modelPath, {
-                            method: 'GET',
-                            mode: 'cors',
-                            cache: 'no-cache',
-                            credentials: 'omit'
-                        });
-                    } catch (corsError) {
-                        console.warn('CORS hatası, no-cors modunda deneniyor...', corsError);
-                        // CORS hatası varsa, no-cors modunda dene (ama response'u okuyamayız)
-                        // Bu durumda doğrudan URL'yi kullan
-                        console.log('CORS sorunu var, doğrudan URL kullanılıyor');
-                        finalModelPath = modelPath;
-                        throw new Error('CORS hatası: GitHub Releases linkleri CORS\'a izin vermiyor. Alternatif çözüm gerekli.');
-                    }
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    const blob = await response.blob();
-                    console.log('Blob oluşturuldu:', blob.size, 'bytes');
-                    finalModelPath = URL.createObjectURL(blob);
-                    console.log('Model blob URL oluşturuldu:', finalModelPath);
-                } catch (fetchError) {
-                    console.error('Fetch hatası detayları:', {
-                        error: fetchError,
-                        message: fetchError.message,
-                        name: fetchError.name,
-                        stack: fetchError.stack,
-                        url: modelPath
-                    });
-                    showLoading(false);
-                    showNotification('Model indirilemedi: ' + fetchError.message, 'error');
-                    throw fetchError;
-                }
-            }
-            
-            // GLTFLoader ile yükle
+            // GLTFLoader ile yükle (Vercel root'tan doğrudan)
             return new Promise((resolve, reject) => {
                 loader.load(
-                    finalModelPath,
+                    modelPath,
                     (gltf) => {
                         const model = gltf.scene || gltf.scenes[0];
                         
@@ -1349,11 +1301,6 @@
                         }
                         
                         showLoading(false);
-                        // Blob URL'yi temizle (model yüklendikten sonra)
-                        if (finalModelPath.startsWith('blob:')) {
-                            // Blob URL'yi hemen temizleme, model-viewer için gerekebilir
-                            // URL.revokeObjectURL(finalModelPath);
-                        }
                         resolve(model);
                     },
                     (progress) => {
@@ -1365,12 +1312,8 @@
                     (error) => {
                         showLoading(false);
                         console.error('Model yükleme hatası:', error);
-                        console.error('Model path:', finalModelPath);
+                        console.error('Model path:', modelPath);
                         showNotification('Model yüklenemedi: ' + product.name, 'error');
-                        // Blob URL'yi temizle
-                        if (finalModelPath.startsWith('blob:')) {
-                            URL.revokeObjectURL(finalModelPath);
-                        }
                         reject(error);
                     }
                 );
