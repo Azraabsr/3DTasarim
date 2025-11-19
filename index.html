@@ -1279,11 +1279,23 @@
                     console.log('Fetch başlatılıyor:', modelPath);
                     
                     // GitHub Releases için fetch - CORS sorununu aşmak için
-                    const response = await fetch(modelPath, {
-                        method: 'GET',
-                        mode: 'cors',
-                        cache: 'no-cache'
-                    });
+                    // Önce no-cors modunda deneyelim (CORS header'ları olmadan)
+                    let response;
+                    try {
+                        response = await fetch(modelPath, {
+                            method: 'GET',
+                            mode: 'cors',
+                            cache: 'no-cache',
+                            credentials: 'omit'
+                        });
+                    } catch (corsError) {
+                        console.warn('CORS hatası, no-cors modunda deneniyor...', corsError);
+                        // CORS hatası varsa, no-cors modunda dene (ama response'u okuyamayız)
+                        // Bu durumda doğrudan URL'yi kullan
+                        console.log('CORS sorunu var, doğrudan URL kullanılıyor');
+                        finalModelPath = modelPath;
+                        throw new Error('CORS hatası: GitHub Releases linkleri CORS\'a izin vermiyor. Alternatif çözüm gerekli.');
+                    }
                     
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -1294,7 +1306,13 @@
                     finalModelPath = URL.createObjectURL(blob);
                     console.log('Model blob URL oluşturuldu:', finalModelPath);
                 } catch (fetchError) {
-                    console.error('Fetch hatası:', fetchError);
+                    console.error('Fetch hatası detayları:', {
+                        error: fetchError,
+                        message: fetchError.message,
+                        name: fetchError.name,
+                        stack: fetchError.stack,
+                        url: modelPath
+                    });
                     showLoading(false);
                     showNotification('Model indirilemedi: ' + fetchError.message, 'error');
                     throw fetchError;
