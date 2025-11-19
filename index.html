@@ -1588,11 +1588,19 @@
                 // Her ürünü yükle ve konumlandır
                 for (const item of sceneData) {
                     try {
-                        // Ürünü products array'inden bul
-                        const product = products.find(p => p.model === item.model);
+                        // Ürünü products array'inden bul (model path'e göre)
+                        let product = products.find(p => p.model === item.model);
+                        
+                        // Eğer bulunamazsa, model path'ini kullanarak yeni bir product objesi oluştur
                         if (!product) {
-                            console.warn(`Ürün bulunamadı: ${item.model}`);
-                            continue;
+                            console.warn(`Ürün bulunamadı, model path kullanılıyor: ${item.model}`);
+                            product = {
+                                id: `product-${item.name || 'unknown'}`,
+                                name: item.name || 'Unknown Product',
+                                description: `3D Model: ${item.model}`,
+                                model: item.model, // Model path'ini doğrudan kullan
+                                thumbnail: ''
+                            };
                         }
                         
                         // Modeli yükle
