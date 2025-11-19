@@ -1266,15 +1266,38 @@
             if (modelPath.startsWith('http://') || modelPath.startsWith('https://')) {
                 try {
                     updateBottomInfo('Model indiriliyor...');
-                    const response = await fetch(modelPath);
+                    console.log('Fetch başlatılıyor:', modelPath);
+                    
+                    // GitHub Releases için özel fetch ayarları
+                    const fetchOptions = {
+                        method: 'GET',
+                        mode: 'cors', // CORS modu
+                        cache: 'no-cache',
+                        headers: {
+                            'Accept': 'application/octet-stream, */*'
+                        }
+                    };
+                    
+                    const response = await fetch(modelPath, fetchOptions);
+                    console.log('Fetch response:', response.status, response.statusText, response.headers);
+                    
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        const errorText = await response.text().catch(() => 'Response body okunamadı');
+                        console.error('HTTP Error Response:', errorText);
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}. URL: ${modelPath}`);
                     }
+                    
                     const blob = await response.blob();
+                    console.log('Blob oluşturuldu:', blob.size, 'bytes, type:', blob.type);
                     finalModelPath = URL.createObjectURL(blob);
                     console.log('Model blob URL oluşturuldu:', finalModelPath);
                 } catch (fetchError) {
-                    console.error('Fetch hatası:', fetchError);
+                    console.error('Fetch hatası detayları:', {
+                        error: fetchError,
+                        message: fetchError.message,
+                        stack: fetchError.stack,
+                        url: modelPath
+                    });
                     showLoading(false);
                     showNotification('Model indirilemedi: ' + fetchError.message, 'error');
                     throw fetchError;
