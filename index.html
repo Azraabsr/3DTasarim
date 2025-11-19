@@ -1312,11 +1312,8 @@
                     (error) => {
                         showLoading(false);
                         console.error('Model yükleme hatası:', error);
+                        console.error('Model path:', modelPath);
                         showNotification('Model yüklenemedi: ' + product.name, 'error');
-                        // Blob URL'yi temizle
-                        if (finalModelPath.startsWith('blob:')) {
-                            URL.revokeObjectURL(finalModelPath);
-                        }
                         reject(error);
                     }
                 );
