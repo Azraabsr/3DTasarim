@@ -1,0 +1,2 @@
+# GLB dosyalarını Git LFS ile yönet
+*.glb filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Bahçe Tasarımcısı - Room Planner</title>
+    
+    <!-- Model Viewer for AR -->
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<!-- QR Code Library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<style>
+        @font-face {
+            font-family: 'NobelUno';
+            src: url('NobelUno-Thin.woff2') format('woff2'),
+                 url('NobelUno-Thin.woff') format('woff');
+            font-weight: 100;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #641411;
+            --primary-hover: #7a1a16;
+            --primary-dark: #4d0f0d;
+            --primary-light: #8b2e28;
+            --secondary: #333333;
+            --secondary-hover: #4a4a4a;
+            --secondary-dark: #1a1a1a;
+            --secondary-light: #555555;
+            --accent: #641411;
+            --danger: #641411;
+            --success: #333333;
+            --bg-dark: #ffffff;
+            --bg-panel: #ffffff;
+            --bg-hover: #f5f5f5;
+            --bg-card: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border: #e0e0e0;
+            --border-primary: #641411;
+            --border-secondary: #333333;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --glow: rgba(100, 20, 17, 0.1);
+        }
+        
+        * {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        body {
+            font-family: 'NobelUno', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            letter-spacing: -0.01em;
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+            gap: 0;
+            padding: 0;
+            background: #ffffff;
+            position: relative;
+        }
+        
+        /* Sidebar - Light & Clean */
+        .sidebar {
+            width: 380px;
+            background: var(--bg-panel);
+            border-radius: 0;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.06);
+            overflow-y: auto;
+            border-right: 1px solid var(--border);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .sidebar-header {
+            padding-bottom: 2rem;
+            margin-bottom: 0;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .sidebar-header h1 {
+            font-size: 1.875rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.03em;
+        }
+        
+        .sidebar-header p {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+            line-height: 1.7;
+            font-weight: 400;
+        }
+        
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        /* Product List */
+        .product-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+            min-height: 100px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+        
+        .product-grid::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .product-grid::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+            border-radius: 3px;
+        }
+        
+        .product-grid::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        
+        .product-item {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            padding: 1.25rem;
+            background: var(--bg-card);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid var(--border);
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        .product-item:hover {
+            background: var(--bg-card);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(100, 20, 17, 0.1);
+        }
+        
+        .product-item.active {
+            background: var(--bg-card);
+            border-color: var(--primary);
+            border-width: 3px;
+            box-shadow: 0 8px 24px rgba(100, 20, 17, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .product-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: var(--bg-hover);
+        }
+        
+        .product-info {
+            flex: 1;
+        }
+        
+        .product-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .product-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Controls */
+        .controls-panel {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 2px solid var(--border);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+        
+        .control-group {
+            margin-bottom: 1rem;
+        }
+        
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.875rem 1.5rem;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.625rem;
+            position: relative;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .btn-primary {
+            background: var(--bg-card);
+            color: var(--primary);
+            border-color: var(--primary);
+            border-width: 2px;
+            box-shadow: 0 2px 8px rgba(100, 20, 17, 0.1);
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: var(--bg-card);
+            color: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(100, 20, 17, 0.2);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--secondary);
+            border-color: var(--secondary);
+            border-width: 2px;
+            box-shadow: 0 2px 8px rgba(51, 51, 51, 0.1);
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--bg-card);
+            color: var(--secondary);
+            border-color: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(51, 51, 51, 0.2);
+        }
+        
+        .btn-danger {
+            background: var(--bg-card);
+            color: var(--danger);
+            border-color: var(--danger);
+            border-width: 2px;
+            box-shadow: 0 2px 8px rgba(100, 20, 17, 0.1);
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+            background: var(--bg-card);
+            color: var(--danger);
+            border-color: var(--danger);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(100, 20, 17, 0.2);
+        }
+        
+        .btn-success {
+            background: var(--bg-card);
+            color: var(--secondary);
+            border-color: var(--secondary);
+            border-width: 2px;
+            box-shadow: 0 2px 8px rgba(51, 51, 51, 0.1);
+        }
+        
+        .btn-success:hover:not(:disabled) {
+            background: var(--bg-card);
+            color: var(--secondary);
+            border-color: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(51, 51, 51, 0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Height Slider */
+        #heightSlider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: var(--bg-hover);
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        #heightSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        #heightSlider::-webkit-slider-thumb:hover {
+            background: var(--primary-dark);
+            transform: scale(1.2);
+        }
+        
+        #heightSlider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: var(--primary);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        #heightSlider::-moz-range-thumb:hover {
+            background: var(--primary-dark);
+            transform: scale(1.2);
+        }
+        
+        .btn-full {
+            grid-column: 1 / -1;
+        }
+        
+        /* Canvas Container */
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #ffffff;
+            border-radius: 0;
+            overflow: hidden;
+            box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.02);
+            border: none;
+            position: relative;
+            z-index: 1;
+        }
+        
+        #three-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        /* Top Bar */
+        .top-bar {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            right: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .top-bar > * {
+            pointer-events: all;
+        }
+        
+        .view-controls {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--bg-panel);
+            padding: 0.5rem;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border: 2px solid var(--border);
+        }
+        
+        .view-btn {
+            padding: 0.75rem 1.25rem;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+            position: relative;
+        }
+        
+        .view-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--secondary);
+        }
+        
+        .view-btn.active {
+            background: var(--bg-card);
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(100, 20, 17, 0.15);
+        }
+        
+        .view-btn.active:hover {
+            border-color: var(--primary);
+        }
+        
+        .info-panel {
+            background: var(--bg-panel);
+            padding: 1rem 1.5rem;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            border: 2px solid var(--border);
+            font-weight: 600;
+        }
+        
+        /* Bottom Info */
+        .bottom-info {
+            position: absolute;
+            bottom: 2rem;
+            left: 2rem;
+            background: var(--bg-panel);
+            padding: 1rem 1.5rem;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            z-index: 10;
+            border: 2px solid var(--border);
+            font-weight: 500;
+        }
+        
+        /* AR Overlay */
+        .ar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+        }
+        
+        .ar-overlay.active {
+            display: flex;
+        }
+        
+        .ar-card {
+            width: 100%;
+            max-width: 1500px;
+            background: var(--bg-panel);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+        }
+        
+        .ar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .ar-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .ar-close {
+            padding: 0.5rem;
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .ar-close:hover {
+            background: var(--bg-card);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        
+        .ar-content-wrapper {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+        }
+        
+        .ar-viewer {
+            flex: 1;
+            min-width: 0;
+            height: 500px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+        }
+        
+        .ar-note {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: var(--bg-card);
+            border: 2px solid var(--secondary);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        
+        .ar-product-list {
+            margin-top: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .ar-product-list.show {
+            display: block;
+        }
+        
+        .ar-product-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .ar-product-item:hover {
+            border-color: var(--primary);
+            background: var(--bg-hover);
+        }
+        
+        .ar-product-item.active {
+            border-color: var(--primary);
+            background: var(--bg-hover);
+            box-shadow: 0 2px 8px rgba(100, 20, 17, 0.15);
+        }
+        
+        .ar-product-item-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+        
+        .ar-qr-container {
+            /* flex: 1; */
+            min-width: 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        @media (max-width: 768px) {
+            .ar-content-wrapper {
+                flex-direction: column;
+            }
+            
+            .ar-viewer {
+                height: 400px;
+            }
+            
+            .ar-qr-container {
+                width: 100%;
+            }
+        }
+        
+        .ar-qr-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+        
+        .ar-qr-code {
+            display: inline-block;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .ar-qr-code canvas,
+        .ar-qr-code img {
+            width: 100% !important;
+            height: auto !important;
+            max-width: 300px;
+        }
+        
+        .ar-qr-instruction {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.75rem;
+            line-height: 1.5;
+        }
+        
+        /* Loading */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            display: none;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Selection Highlight */
+        .selection-outline {
+            position: absolute;
+            border: 2px solid var(--primary);
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                max-height: 40vh;
+            }
+            
+            .canvas-container {
+                height: 60vh;
+            }
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: var(--bg-panel);
+            padding: 1rem 1.5rem;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            z-index: 10001;
+            transform: translateX(400px);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid var(--border);
+            border-left: 4px solid var(--secondary);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            border-left-color: var(--secondary);
+        }
+        
+        .notification.error {
+            border-left-color: var(--danger);
+        }
+        
+        /* Slider */
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--bg-hover);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(100, 20, 17, 0.3);
+            transition: all 0.3s ease;
+            -moz-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(100, 20, 17, 0.4);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(100, 20, 17, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(100, 20, 17, 0.4);
+        }
+</style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>3D Bahçe Tasarımcısı</h1>
+                <p>Ürünleri seçin ve bahçenize yerleştirin</p>
+            </div>
+            
+        <div>
+                <div class="section-title">Ürün Kataloğu</div>
+                <div class="product-grid" id="productGrid">
+                    <!-- Products -->
+                    <div class="product-item" data-product-id="product-1" data-model="C002.glb" data-name="Terra Serisi">
+                        <img src="terralarge.png" alt="Terra Serisi" class="product-thumb" 
+                             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><rect fill=%22%23334155%22 width=%22200%22 height=%22200%22/><rect fill=%22%231e293b%22 x=%2220%22 y=%2220%22 width=%22160%22 height=%22160%22 rx=%228%22/><text fill=%22%2394a3b8%22 font-family=%22sans-serif%22 font-size=%2216%22 font-weight=%22bold%22 x=%2250%25%22 y=%2245%25%22 text-anchor=%22middle%22>Terra%20Serisi</text><text fill=%22%236366f1%22 font-family=%22sans-serif%22 font-size=%2212%22 x=%2250%25%22 y=%2260%25%22 text-anchor=%22middle%22>3D%20Model</text><text fill=%22%238b5cf6%22 font-family=%22monospace%22 font-size=%2210%22 x=%2250%25%22 y=%2275%25%22 text-anchor=%22middle%22>C002.glb</text></svg>'">
+                        <div class="product-info">
+                            <div class="product-name">Terra Serisi</div>
+                            <div class="product-desc">3D Model: C002.glb</div>
+                            <div style="font-size: 0.7rem; color: var(--primary); margin-top: 4px;">
+                                C002.glb
+                            </div>
+        </div>
+      </div>
+
+                    <div class="product-item" data-product-id="product-2" data-model="C015.glb" data-name="Noka Serisi">
+                        <img src="pom.png" alt="Noka Serisi" class="product-thumb"
+                             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><rect fill=%22%23334155%22 width=%22200%22 height=%22200%22/><rect fill=%22%231e293b%22 x=%2220%22 y=%2220%22 width=%22160%22 height=%22160%22 rx=%228%22/><text fill=%22%2394a3b8%22 font-family=%22sans-serif%22 font-size=%2216%22 font-weight=%22bold%22 x=%2250%25%22 y=%2245%25%22 text-anchor=%22middle%22>Noka%20Serisi</text><text fill=%22%236366f1%22 font-family=%22sans-serif%22 font-size=%2212%22 x=%2250%25%22 y=%2260%25%22 text-anchor=%22middle%22>3D%20Model</text><text fill=%22%238b5cf6%22 font-family=%22monospace%22 font-size=%2210%22 x=%2250%25%22 y=%2275%25%22 text-anchor=%22middle%22>C015.glb</text></svg>'">
+                        <div class="product-info">
+                            <div class="product-name">Noka Serisi</div>
+                            <div class="product-desc">3D Model: C015.glb</div>
+                            <div style="font-size: 0.7rem; color: var(--primary); margin-top: 4px;">
+                                C015.glb
+                            </div>
+                        </div>
+        </div>
+      </div>
+    </div>
+
+            <div class="controls-panel">
+                <div class="section-title">Kontroller</div>
+                
+                <div class="control-group">
+                    <span class="control-label">Seçili Ürün:</span>
+                    <div id="selectedInfo" style="color: var(--text-secondary); font-size: 0.875rem;">
+                        Henüz seçim yapılmadı
+                    </div>
+    </div>
+
+                <div class="control-group" id="heightControlGroup" style="display: none;">
+                    <span class="control-label">Yükseklik: <span id="heightValue">0.0</span>m</span>
+                    <input type="range" id="heightSlider" min="0" max="5" step="0.1" value="0" 
+                           style="width: 100%; margin-top: 0.5rem; cursor: pointer;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                        <span>0m</span>
+                        <span>2.5m</span>
+                        <span>5m</span>
+                    </div>
+    </div>
+
+                <div class="control-group">
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="rotateBtn">
+                            Döndür
+                        </button>
+                        <button class="btn btn-secondary" id="duplicateBtn">
+                            Kopyala
+                        </button>
+                        <button class="btn btn-danger" id="deleteBtn">
+                            Sil
+                        </button>
+                        <button class="btn btn-success btn-full" id="arBtn">
+                            AR Görüntüle
+                        </button>
+                    </div>
+  </div>
+
+                <div class="control-group">
+                    <span class="control-label">Kısayollar:</span>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.6;">
+                        • Sol tık: Seç/Yerleştir<br>
+                        • Sürükle: Taşı<br>
+                        • Sağ tık: Kamera döndür<br>
+                        • Scroll: Yakınlaştır
+                    </div>
+                </div>
+            </div>
+    </div>
+
+        <!-- Canvas -->
+        <div class="canvas-container">
+            <div class="top-bar">
+                <div class="view-controls">
+                    <button class="view-btn active" data-view="top">Üst</button>
+                    <button class="view-btn" data-view="front">Ön</button>
+                    <button class="view-btn" data-view="side">Yan</button>
+                    <button class="view-btn" data-view="iso">İzo</button>
+                    <div style="width: 1px; height: 20px; background: var(--border); margin: 0 0.25rem;"></div>
+                    <button class="view-btn" id="placeSideBySideBtn" title="Yanyana Koy">Yanyana</button>
+                    <button class="view-btn" id="placeOppositeBtn" title="Karşılıklı Koy">Karşılıklı</button>
+                </div>
+                <div class="info-panel" id="infoPanel">
+                    Nesneler: 0
+                </div>
+    </div>
+
+      <canvas id="three-canvas"></canvas>
+            
+            <div class="bottom-info" id="bottomInfo">
+                Ürün seçmek için sol panelden bir ürün tıklayın
+    </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+  </div>
+</div>
+    </div>
+
+    <!-- AR Overlay -->
+    <div class="ar-overlay" id="arOverlay">
+        <div class="ar-card">
+            <div class="ar-header">
+                <div class="ar-title" id="arTitle">AR Görüntüleyici</div>
+                <button class="ar-close" id="arClose">×</button>
+            </div>
+            <div class="ar-product-list" id="arProductList">
+                <!-- Ürün listesi buraya eklenecek -->
+            </div>
+            <div class="ar-content-wrapper">
+                <model-viewer
+                    id="arViewer"
+                    class="ar-viewer"
+                    src=""
+                    alt="3D Model"
+                    ar
+                    ar-modes="scene-viewer webxr quick-look"
+                    camera-controls
+                    environment-image="neutral"
+                    shadow-intensity="1"
+                    auto-rotate
+                ></model-viewer>
+                <div class="ar-qr-container" id="arQrContainer">
+                    <div class="ar-qr-title">Mobil Cihazdan AR/VR İçin QR Kod</div>
+                    <div class="ar-qr-code" id="arQrCode"></div>
+                    <div class="ar-qr-instruction">
+                        Telefon veya tablet kamerası ile QR kodu okutun<br>
+                        AR/VR modunda açılacaktır
+                    </div>
+                </div>
+            </div>
+            <div class="ar-note">
+                AR özelliği mobil cihazlarda daha iyi çalışır. Modeli gerçek ortamınızda görüntüleyin!
+            </div>
+  </div>
+</div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+    
+    <!-- Three.js - Importmap ile modern yükleme -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.161.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.161.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        // Three.js'i ES6 modül olarak yükle
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+        
+        console.log('Three.js modülleri yüklendi!');
+        
+        // Global scope'a ekle (eski kod uyumluluğu için)
+        if (!window.THREE) {
+            window.THREE = THREE;
+        }
+        window.OrbitControls = OrbitControls;
+        window.GLTFLoader = GLTFLoader;
+        window.GLTFExporter = GLTFExporter;
+        
+        // Fallback'in çalışmasını engelle
+        window.threeJSLoaded = true;
+        
+        // Ana uygulamayı başlat
+        if (typeof initializeMainApp === 'function') {
+            initializeMainApp();
+        } else {
+            // initializeMainApp henüz tanımlanmamışsa bekle
+            const checkInterval = setInterval(() => {
+                if (typeof initializeMainApp === 'function') {
+                    clearInterval(checkInterval);
+                    initializeMainApp();
+                }
+            }, 100);
+            
+            // 5 saniye sonra timeout
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                console.error('initializeMainApp fonksiyonu bulunamadı!');
+            }, 5000);
+        }
+    </script>
+    
+    <!-- Fallback: Eski tarayıcılar için (sadece importmap desteklenmiyorsa) -->
+<script>
+        // Fallback kontrolü - Module script'in yüklenmesini bekle
+        (function() {
+            // Importmap destekleniyorsa fallback'i hiç çalıştırma
+            if (HTMLScriptElement.supports && HTMLScriptElement.supports('importmap')) {
+                console.log('Importmap destekleniyor, fallback atlanıyor');
+                return;
+            }
+            
+            // Module script'in yüklenmesini bekle (2 saniye)
+            let checkCount = 0;
+            const maxChecks = 20; // 2 saniye (20 * 100ms)
+            
+            const checkModuleLoaded = setInterval(() => {
+                checkCount++;
+                
+                // THREE yüklendi mi kontrol et
+                if (typeof window.THREE !== 'undefined' && window.threeJSLoaded) {
+                    clearInterval(checkModuleLoaded);
+                    console.log('Module script Three.js yükledi, fallback atlanıyor');
+                    return;
+                }
+                
+                // Max kontrol sayısına ulaşıldıysa fallback'i çalıştır
+                if (checkCount >= maxChecks) {
+                    clearInterval(checkModuleLoaded);
+                    
+                    // Hala yüklenmediyse fallback kullan
+                    if (typeof window.THREE === 'undefined') {
+                        console.log('Module script yüklenemedi, fallback kullanılıyor...');
+                        loadThreeJSFallback();
+                    }
+                }
+            }, 100);
+            
+            // Three.js script'lerini dinamik olarak yükle (fallback)
+            function loadScript(src) {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.onload = resolve;
+                    script.onerror = () => {
+                        console.warn(`Script yüklenemedi: ${src}`);
+                        resolve(); // Hata olsa bile devam et
+                    };
+                    document.head.appendChild(script);
+                });
+            }
+            
+            async function loadThreeJSFallback() {
+                try {
+                    console.log('Three.js fallback yükleme...');
+                    
+                    // Ana Three.js
+                    await loadScript('https://unpkg.com/three@0.161.0/build/three.min.js');
+                    
+                    if (typeof THREE === 'undefined') {
+                        throw new Error('Three.js yüklenemedi');
+                    }
+                    
+                    console.log('Three.js core yüklendi (fallback)');
+                    
+                    // OrbitControls
+                    await loadScript('https://unpkg.com/three@0.161.0/examples/js/controls/OrbitControls.js');
+                    console.log('OrbitControls yüklendi (fallback)');
+                    
+                    // GLTFLoader
+                    await loadScript('https://unpkg.com/three@0.161.0/examples/js/loaders/GLTFLoader.js');
+                    console.log('GLTFLoader yüklendi (fallback)');
+                    
+                    // Global scope'a ekle
+                    if (!window.THREE) {
+                        window.THREE = THREE;
+                    }
+                    window.threeJSLoaded = true;
+                    
+                    // Ana uygulamayı başlat
+                    if (typeof initializeMainApp === 'function') {
+                        setTimeout(() => initializeMainApp(), 100);
+                    }
+                } catch (error) {
+                    console.error('Fallback yükleme hatası:', error);
+                }
+            }
+        })();
+    </script>
+    
+    <script>
+        // ============================================
+        // 3D Room Planner / Product Configurator
+        // ============================================
+        
+        // Scene setup
+        let scene, camera, renderer, controls, loader;
+        let raycaster, mouse;
+        let placedObjects = [];
+        let selectedObject = null;
+        let placingObject = null;
+        let isDragging = false;
+        let currentARBlobURL = null;
+        
+        const GRID_SIZE = 0.5; // Grid snap size in meters
+        const GROUND_SIZE = 50;
+        
+        // Product catalog - GLB dosyaları
+        const products = [
+            {
+                id: 'product-1',
+                name: 'Terra Serisi',
+                description: '3D Model: C002.glb',
+                model: 'C002.glb',
+                thumbnail: 'terralarge.png'
+            },
+            {
+                id: 'product-2',
+                name: 'Noka Serisi',
+                description: '3D Model: C015.glb',
+                model: 'C015.glb',
+                thumbnail: 'pom.png'
+            }
+        ];
+        
+        // Initialize Three.js
+        function initThree() {
+  const canvas = document.getElementById('three-canvas');
+            const container = canvas.parentElement;
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                antialias: true,
+                alpha: false
+            });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            // Beyaz arka plan
+            renderer.setClearColor(0xffffff, 1);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            // Scene
+  scene = new THREE.Scene();
+
+            // Camera
+            const aspect = container.clientWidth / container.clientHeight;
+            camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
+            camera.position.set(8, 8, 8);
+            camera.lookAt(0, 0, 0);
+            
+            // Controls
+            const OrbitControlsClass = window.OrbitControls || THREE.OrbitControls;
+            if (!OrbitControlsClass) {
+                console.error('OrbitControls bulunamadı!');
+                return;
+            }
+            controls = new OrbitControlsClass(camera, renderer.domElement);
+  controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 3;
+            controls.maxDistance = 50;
+            controls.target.set(0, 0, 0);
+            
+            // Lights - Parlak ve dengeli ışıklandırma
+            // Ana ambient light (genel aydınlatma)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+            scene.add(ambientLight);
+            
+            // Ana directional light (güneş ışığı gibi)
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            directionalLight.position.set(10, 15, 10);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 50;
+            directionalLight.shadow.camera.left = -20;
+            directionalLight.shadow.camera.right = 20;
+            directionalLight.shadow.camera.top = 20;
+            directionalLight.shadow.camera.bottom = -20;
+            scene.add(directionalLight);
+            
+            // Fill light (karşı taraftan aydınlatma)
+            const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            fillLight.position.set(-10, 8, -10);
+            scene.add(fillLight);
+            
+            // Ek yan ışık (daha iyi detay görünümü için)
+            const sideLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            sideLight.position.set(0, 10, 15);
+            scene.add(sideLight);
+            
+            // Üst ışık (yukarıdan aydınlatma)
+            const topLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            topLight.position.set(0, 20, 0);
+            scene.add(topLight);
+            
+            // Hemisphere light (gökyüzü ve yer ışığı)
+            const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+            hemisphereLight.position.set(0, 10, 0);
+            scene.add(hemisphereLight);
+            
+            // Grid
+            const gridHelper = new THREE.GridHelper(GROUND_SIZE, GROUND_SIZE * 2, 0x3a4a5c, 0x1a2530);
+            gridHelper.material.opacity = 0.4;
+            gridHelper.material.transparent = true;
+            scene.add(gridHelper);
+            
+            // Ground plane (for raycasting)
+            const groundGeometry = new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE);
+            const groundMaterial = new THREE.MeshStandardMaterial({
+                color: 0x0f172a,
+                roughness: 0.8,
+                metalness: 0.1
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+  ground.position.y = 0;
+            ground.receiveShadow = true;
+  ground.name = 'ground';
+            ground.visible = false; // Invisible but still raycastable
+  scene.add(ground);
+
+            // Loader
+            const GLTFLoaderClass = window.GLTFLoader || (typeof GLTFLoader !== 'undefined' ? GLTFLoader : null) || THREE.GLTFLoader;
+            if (!GLTFLoaderClass) {
+                console.error('GLTFLoader bulunamadı!');
+                return;
+            }
+            loader = new GLTFLoaderClass();
+            
+            // Raycaster
+  raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            
+            // Event listeners
+            window.addEventListener('resize', onWindowResize);
+            canvas.addEventListener('pointermove', onPointerMove);
+            canvas.addEventListener('pointerdown', onPointerDown);
+            canvas.addEventListener('pointerup', onPointerUp);
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+            
+            // Start animation loop
+  animate();
+}
+
+        function onWindowResize() {
+            const container = renderer.domElement.parentElement;
+            camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+}
+
+        function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+        // Product loading
+        function loadProduct(product) {
+            showLoading(true);
+            
+            // Dosya yolunu düzelt - eğer göreceli yol ise ./ ekle
+            let modelPath = product.model;
+            if (!modelPath.startsWith('http://') && !modelPath.startsWith('https://') && !modelPath.startsWith('/') && !modelPath.startsWith('./')) {
+                modelPath = './' + modelPath;
+            }
+            
+            return new Promise((resolve, reject) => {
+                loader.load(
+                    modelPath,
+                    (gltf) => {
+                        const model = gltf.scene || gltf.scenes[0];
+                        
+                        // Enable shadows
+                        model.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.receiveShadow = true;
+                            }
+                        });
+                        
+                        // Center and scale model
+                        const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+                        
+                        model.position.sub(center);
+                        
+                        // Scale if too large
+                        const maxSize = Math.max(size.x, size.y, size.z);
+                        if (maxSize > 3) {
+                            const scale = 2.5 / maxSize;
+                            model.scale.setScalar(scale);
+                        }
+                        
+                        showLoading(false);
+                        resolve(model);
+                    },
+                    (progress) => {
+                        if (progress.lengthComputable) {
+        const percent = (progress.loaded / progress.total * 100).toFixed(0);
+                            updateBottomInfo(`Yükleniyor: ${percent}%`);
+                        }
+                    },
+                    (error) => {
+                        showLoading(false);
+                        console.error('Model yükleme hatası:', error);
+                        showNotification('Model yüklenemedi: ' + product.name, 'error');
+                        reject(error);
+                    }
+                );
+            });
+        }
+        
+        // Add product to scene
+        async function addProductToScene(product) {
+            console.log('Ürün ekleniyor:', product);
+            
+            if (!scene) {
+                console.error('Scene henüz hazır değil!');
+                showNotification('3D sahne henüz yüklenmedi, lütfen bekleyin...', 'error');
+                return;
+            }
+            
+            if (!product || !product.model) {
+                console.error('Geçersiz ürün:', product);
+                showNotification('Ürün bilgisi eksik!', 'error');
+                return;
+            }
+            
+            try {
+                console.log(`Model yükleniyor: ${product.model}`);
+                const model = await loadProduct(product);
+                
+                if (!model) {
+                    console.error('Model yüklenemedi');
+                    showNotification('Model yüklenemedi!', 'error');
+                    return;
+                }
+                
+                const group = new THREE.Group();
+                group.add(model);
+                group.userData = {
+                    productId: product.id,
+                    productName: product.name,
+                    modelPath: product.model
+                };
+                
+                // Position at center initially
+                group.position.set(0, 0, 0);
+                
+                scene.add(group);
+                placedObjects.push(group);
+                placingObject = group;
+                selectedObject = group;
+                
+                updateUI();
+                showNotification(`${product.name} eklendi!`, 'success');
+                console.log('Ürün başarıyla eklendi:', product.name);
+            } catch (error) {
+                console.error('Ürün eklenirken hata:', error);
+                showNotification(`Hata: ${error.message || 'Bilinmeyen hata'}`, 'error');
+            }
+        }
+        
+        // Mouse interaction
+        function getMousePosition(event) {
+  const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        }
+        
+        function getGroundIntersection(event) {
+            getMousePosition(event);
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(scene.getObjectByName('ground'));
+            return intersects.length > 0 ? intersects[0].point : null;
+        }
+        
+        function getObjectIntersection(event) {
+            getMousePosition(event);
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(placedObjects, true);
+            return intersects.length > 0 ? intersects[0] : null;
+        }
+        
+        function snapToGrid(position) {
+            position.x = Math.round(position.x / GRID_SIZE) * GRID_SIZE;
+            position.z = Math.round(position.z / GRID_SIZE) * GRID_SIZE;
+            position.y = 0;
+            return position;
+        }
+        
+        function onPointerMove(event) {
+            if (placingObject) {
+                const intersection = getGroundIntersection(event);
+                if (intersection) {
+                    snapToGrid(intersection);
+                    placingObject.position.copy(intersection);
+                }
+            } else if (isDragging && selectedObject) {
+                const intersection = getGroundIntersection(event);
+                if (intersection) {
+                    snapToGrid(intersection);
+                    selectedObject.position.copy(intersection);
+                    updateUI();
+                }
+            }
+        }
+        
+        function onPointerDown(event) {
+            if (event.button === 0) { // Left click
+                if (placingObject) {
+                    // Place the object
+                    placingObject = null;
+                    updateUI();
+                    showNotification('Ürün yerleştirildi', 'success');
+    } else {
+                    // Select object
+                    const intersection = getObjectIntersection(event);
+                    if (intersection) {
+                        // Find the root group
+                        let obj = intersection.object;
+                        while (obj.parent && !placedObjects.includes(obj)) {
+                            obj = obj.parent;
+                        }
+                        if (placedObjects.includes(obj)) {
+                            selectedObject = obj;
+                            isDragging = true;
+                            updateUI();
+                        }
+                    } else {
+                        selectedObject = null;
+                        updateUI();
+                    }
+                }
+            }
+        }
+        
+        function onPointerUp(event) {
+            if (event.button === 0) {
+                isDragging = false;
+            }
+        }
+        
+        // UI Controls
+        function rotateSelected() {
+            if (!selectedObject) {
+                showNotification('Önce bir ürün seçin', 'error');
+      return;
+            }
+            selectedObject.rotation.y += Math.PI / 2;
+            showNotification('Ürün döndürüldü', 'success');
+        }
+        
+        function duplicateSelected() {
+            if (!selectedObject) {
+                showNotification('Önce bir ürün seçin', 'error');
+                return;
+            }
+            
+            const clone = selectedObject.clone();
+            clone.position.x += GRID_SIZE * 2;
+            snapToGrid(clone.position);
+            
+            scene.add(clone);
+            placedObjects.push(clone);
+            selectedObject = clone;
+            
+            updateUI();
+            showNotification('Ürün kopyalandı', 'success');
+        }
+        
+        function placeSideBySide() {
+            if (placedObjects.length === 0) {
+                showNotification('Sahnede ürün yok', 'error');
+                return;
+            }
+            
+            if (placedObjects.length === 1) {
+                showNotification('En az 2 ürün gerekli', 'error');
+                return;
+            }
+            
+            // Tüm ürünleri X ekseninde yan yana diz
+            const spacing = GRID_SIZE * 3; // Ürünler arası mesafe
+            let currentX = 0;
+            
+            placedObjects.forEach((obj, index) => {
+                obj.position.x = currentX;
+                obj.position.y = 0;
+                obj.position.z = 0;
+                snapToGrid(obj.position);
+                currentX += spacing;
+            });
+            
+            updateUI();
+            showNotification(`${placedObjects.length} ürün yanyana yerleştirildi`, 'success');
+        }
+        
+        function placeOpposite() {
+            if (placedObjects.length === 0) {
+                showNotification('Sahnede ürün yok', 'error');
+      return;
+    }
+
+            if (placedObjects.length === 1) {
+                showNotification('En az 2 ürün gerekli', 'error');
+                return;
+            }
+            
+            // Ürünleri iki sıra halinde karşılıklı yerleştir
+            const spacing = GRID_SIZE * 3;
+            const halfCount = Math.ceil(placedObjects.length / 2);
+            let currentZ = 0;
+            
+            placedObjects.forEach((obj, index) => {
+                if (index < halfCount) {
+                    // İlk sıra (ön)
+                    obj.position.x = (index - (halfCount - 1) / 2) * spacing;
+                    obj.position.y = 0;
+                    obj.position.z = currentZ;
+    } else {
+                    // İkinci sıra (arka)
+                    const backIndex = index - halfCount;
+                    obj.position.x = (backIndex - (halfCount - 1) / 2) * spacing;
+                    obj.position.y = 0;
+                    obj.position.z = currentZ + spacing * 2;
+                }
+                snapToGrid(obj.position);
+            });
+            
+            updateUI();
+            showNotification(`${placedObjects.length} ürün karşılıklı yerleştirildi`, 'success');
+        }
+        
+        function deleteSelected() {
+            if (!selectedObject) {
+                showNotification('Önce bir ürün seçin', 'error');
+                return;
+            }
+            
+            scene.remove(selectedObject);
+            const index = placedObjects.indexOf(selectedObject);
+            if (index > -1) {
+                placedObjects.splice(index, 1);
+            }
+            selectedObject = null;
+            
+            updateUI();
+            showNotification('Ürün silindi', 'success');
+        }
+        
+        // Sahne verilerinden AR modeli oluştur
+        async function loadSceneForAR(sceneData) {
+            if (!scene || sceneData.length === 0) {
+                showNotification('AR sahne yüklenemedi', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            updateBottomInfo('AR modeli hazırlanıyor...');
+            
+            try {
+                const arViewer = document.getElementById('arViewer');
+                const arOverlay = document.getElementById('arOverlay');
+                const arTitle = document.getElementById('arTitle');
+                
+                if (!arViewer || !arOverlay) {
+                    showNotification('AR görüntüleyici bulunamadı', 'error');
+                    return;
+                }
+                
+                // Sahnedeki ürünleri birleştir
+                const combinedScene = new THREE.Group();
+                
+                // placedObjects'i temizle ve yeniden doldur (QR kod için)
+                placedObjects = [];
+                
+                // Her ürünü yükle ve konumlandır
+                for (const item of sceneData) {
+                    try {
+                        // Ürünü products array'inden bul
+                        const product = products.find(p => p.model === item.model);
+                        if (!product) {
+                            console.warn(`Ürün bulunamadı: ${item.model}`);
+                            continue;
+                        }
+                        
+                        // Modeli yükle
+                        const model = await loadProduct(product);
+                        if (!model) continue;
+                        
+                        // Konumlandır
+                        const group = new THREE.Group();
+                        group.add(model);
+                        group.userData = {
+                            productId: product.id,
+                            productName: product.name,
+                            modelPath: product.model
+                        };
+                        group.position.set(item.position.x, item.position.y, item.position.z);
+                        group.rotation.set(item.rotation.x, item.rotation.y, item.rotation.z);
+                        
+                        combinedScene.add(group);
+                        placedObjects.push(group); // QR kod için placedObjects'i doldur
+                    } catch (error) {
+                        console.error(`Ürün yükleme hatası (${item.model}):`, error);
+                    }
+                }
+                
+                if (combinedScene.children.length === 0) {
+                    showNotification('Hiç ürün yüklenemedi', 'error');
+                    showLoading(false);
+                    return;
+                }
+                
+                // GLTFExporter ile export et
+                const exporter = new GLTFExporter();
+                
+                const gltf = await Promise.race([
+                    new Promise((resolve, reject) => {
+                        try {
+                            exporter.parse(
+                                combinedScene,
+                                (result) => {
+                                    console.log('Export result:', result, 'Type:', typeof result, 'Is ArrayBuffer:', result instanceof ArrayBuffer);
+                                    
+                                    if (result instanceof ArrayBuffer) {
+                                        resolve(result);
+                                    } else if (result && result.buffer instanceof ArrayBuffer) {
+                                        resolve(result.buffer);
+                                    } else if (result && typeof result === 'object') {
+                                        console.log('Result object keys:', Object.keys(result));
+                                        
+                                        if (result.data instanceof ArrayBuffer) {
+                                            resolve(result.data);
+                                        } else if (result.buffer instanceof ArrayBuffer) {
+                                            resolve(result.buffer);
+                                        } else {
+                                            console.warn('Result is JSON object, converting to GLB...');
+                                            try {
+                                                const glbBuffer = convertGLTFToGLB(result);
+                                                resolve(glbBuffer);
+                                            } catch (err) {
+                                                reject(new Error('GLTF JSON GLB formatına çevrilemedi: ' + err.message));
+                                            }
+                                        }
+                                    } else {
+                                        reject(new Error('Export sonucu boş veya geçersiz'));
+                                    }
+                                },
+                                { 
+                                    binary: true,
+                                    includeCustomExtensions: false
+                                }
+                            );
+                        } catch (error) {
+                            reject(error);
+                        }
+                    }),
+                    new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Export işlemi zaman aşımına uğradı')), 30000);
+                    })
+                ]);
+                
+                // Önceki blob URL'yi temizle
+                if (currentARBlobURL) {
+                    URL.revokeObjectURL(currentARBlobURL);
+                }
+                
+                // Blob oluştur
+                const blob = new Blob([gltf], { type: 'application/octet-stream' });
+                currentARBlobURL = URL.createObjectURL(blob);
+                
+                // Model-viewer'a yükle
+                arViewer.setAttribute('src', currentARBlobURL);
+                arTitle.textContent = `AR Görüntüleyici (${sceneData.length} ürün)`;
+                
+                // QR kod oluştur
+                generateQRCode();
+                
+                // Overlay'i göster
+                arOverlay.classList.add('active');
+                
+                showLoading(false);
+                showNotification(`${sceneData.length} ürün AR'da hazır!`, 'success');
+                
+            } catch (error) {
+                console.error('AR scene yükleme hatası:', error);
+                showLoading(false);
+                showNotification('AR modeli oluşturulamadı', 'error');
+            }
+        }
+        
+        // GLTF JSON'u GLB formatına çevir
+        function convertGLTFToGLB(gltfJson) {
+            try {
+                const jsonString = JSON.stringify(gltfJson);
+                const jsonEncoder = new TextEncoder();
+                const jsonData = jsonEncoder.encode(jsonString);
+                
+                // GLB header (12 bytes)
+                const header = new ArrayBuffer(12);
+                const headerView = new DataView(header);
+                headerView.setUint32(0, 0x46546C67, true); // "glTF" magic
+                headerView.setUint32(4, 2, true); // version
+                
+                // JSON chunk
+                const jsonChunkLength = jsonData.length;
+                const jsonChunk = new ArrayBuffer(8 + jsonChunkLength);
+                const jsonChunkView = new DataView(jsonChunk);
+                jsonChunkView.setUint32(0, jsonChunkLength, true);
+                jsonChunkView.setUint32(4, 0x4E4F534A, true); // "JSON" chunk type
+                new Uint8Array(jsonChunk, 8).set(jsonData);
+                
+                // Total length
+                const totalLength = 12 + jsonChunk.byteLength;
+                headerView.setUint32(8, totalLength, true);
+                
+                // Birleştir
+                const glb = new ArrayBuffer(totalLength);
+                new Uint8Array(glb, 0, 12).set(new Uint8Array(header));
+                new Uint8Array(glb, 12).set(new Uint8Array(jsonChunk));
+                
+                return glb;
+            } catch (error) {
+                console.error('GLTF to GLB conversion error:', error);
+                throw new Error('GLTF JSON GLB formatına çevrilemedi');
+            }
+        }
+        
+        // QR kod oluştur
+        function generateQRCode() {
+            const qrContainer = document.getElementById('arQrCode');
+            if (!qrContainer) return;
+            
+            qrContainer.innerHTML = ''; // Önceki QR kod'u temizle
+            
+            // QR kod için URL oluştur - mevcut sayfa URL'sini kullan
+            let currentUrl = window.location.origin + window.location.pathname;
+            const hostname = window.location.hostname;
+            
+            // Localhost kontrolü - eğer localhost ise uyarı göster
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                qrContainer.innerHTML = `
+                    <div style="padding: 1rem; text-align: center;">
+                        <div style="color: var(--danger); font-weight: 600; margin-bottom: 0.5rem;">
+                            ⚠ Localhost kullanılıyor
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.5;">
+                            QR kod'un her yerden çalışması için sayfanın public bir URL'de olması gerekir.<br>
+                            <strong>Çözümler:</strong><br>
+                            1. Sayfayı GitHub Pages, Netlify veya Vercel'e yükleyin<br>
+                            2. ngrok gibi bir tunnel servisi kullanın<br>
+                            3. Kendi web sunucunuzda host edin
+                        </div>
+                        <div style="font-size: 0.7rem; color: var(--text-secondary);">
+                            Şu anki URL: ${currentUrl}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sahnedeki ürün bilgilerini topla
+            const sceneData = placedObjects.map(obj => ({
+                model: obj.userData.modelPath,
+                name: obj.userData.productName,
+                position: {
+                    x: obj.position.x,
+                    y: obj.position.y,
+                    z: obj.position.z
+                },
+                rotation: {
+                    x: obj.rotation.x,
+                    y: obj.rotation.y,
+                    z: obj.rotation.z
+                }
+            }));
+            
+            // Scene data'yı base64 encode et (URL'de güvenli olması için)
+            const sceneDataJson = JSON.stringify(sceneData);
+            const sceneDataEncoded = btoa(unescape(encodeURIComponent(sceneDataJson)));
+            
+            const qrUrl = `${currentUrl}?ar=true&scene=${encodeURIComponent(sceneDataEncoded)}`;
+            
+            // QRCode.js kullanarak QR kod oluştur
+            if (typeof QRCode !== 'undefined') {
+                try {
+                    new QRCode(qrContainer, {
+                        text: qrUrl,
+                        width: 200,
+                        height: 200,
+                        colorDark: '#333333',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } catch (error) {
+                    console.error('QR kod oluşturma hatası:', error);
+                    qrContainer.innerHTML = `
+                        <div style="padding: 1rem; color: var(--text-secondary);">
+                            QR kod oluşturulamadı
+                        </div>
+                    `;
+                }
+            } else {
+                // QRCode.js yüklenmediyse alternatif
+                qrContainer.innerHTML = `
+                    <div style="padding: 1rem; color: var(--text-secondary);">
+                        QR kod kütüphanesi yükleniyor...
+                    </div>
+                `;
+                // QRCode.js yüklendikten sonra tekrar dene
+                setTimeout(() => {
+                    if (typeof QRCode !== 'undefined') {
+                        generateQRCode();
+                    }
+                }, 500);
+            }
+        }
+        
+        async function openARViewer() {
+            if (placedObjects.length === 0) {
+                showNotification('Sahnede görüntülenecek ürün yok', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            updateBottomInfo('AR modeli hazırlanıyor...');
+            
+            try {
+                const arViewer = document.getElementById('arViewer');
+                const arTitle = document.getElementById('arTitle');
+                const arOverlay = document.getElementById('arOverlay');
+                const arProductList = document.getElementById('arProductList');
+                
+                // Ürün listesini gizle (artık gerek yok)
+                arProductList.classList.remove('show');
+                arProductList.innerHTML = '';
+                
+                // Sahnedeki tüm ürünleri birleştir
+                const combinedScene = new THREE.Group();
+                
+                placedObjects.forEach((obj) => {
+                    // Her ürünü klonla ve konumunu koru
+                    // Deep clone yaparak tüm child'ları, material'ları ve texture'ları da kopyala
+                    const cloned = obj.clone(true);
+                    cloned.position.copy(obj.position);
+                    cloned.rotation.copy(obj.rotation);
+                    cloned.scale.copy(obj.scale);
+                    combinedScene.add(cloned);
+                });
+                
+                // GLTFExporter ile export et
+                const exporter = new GLTFExporter();
+                
+                const gltf = await Promise.race([
+                    new Promise((resolve, reject) => {
+                        try {
+                            exporter.parse(
+                                combinedScene,
+                                (result) => {
+                                    console.log('Export result:', result, 'Type:', typeof result, 'Is ArrayBuffer:', result instanceof ArrayBuffer);
+                                    
+                                    // Binary modda ArrayBuffer bekleniyor
+                                    if (result instanceof ArrayBuffer) {
+                                        resolve(result);
+                                    } else if (result && result.buffer instanceof ArrayBuffer) {
+                                        // Uint8Array veya benzeri bir typed array ise
+                                        resolve(result.buffer);
+                                    } else if (result && typeof result === 'object') {
+                                        // Object ise, içinde ArrayBuffer olup olmadığını kontrol et
+                                        console.log('Result object keys:', Object.keys(result));
+                                        
+                                        // GLTFExporter bazen object döndürebilir, içinde data olabilir
+                                        if (result.data instanceof ArrayBuffer) {
+                                            resolve(result.data);
+                                        } else if (result.buffer instanceof ArrayBuffer) {
+                                            resolve(result.buffer);
+                                        } else {
+                                            // JSON formatında gelmişse, GLB'ye çevir
+                                            console.warn('Result is JSON object, converting to GLB...');
+                                            try {
+                                                const glbBuffer = convertGLTFToGLB(result);
+                                                resolve(glbBuffer);
+                                            } catch (err) {
+                                                reject(new Error('GLTF JSON GLB formatına çevrilemedi: ' + err.message));
+                                            }
+                                        }
+                                    } else {
+                                        reject(new Error('Export sonucu boş veya geçersiz'));
+                                    }
+                                },
+                                { 
+                                    binary: true,
+                                    includeCustomExtensions: false
+                                }
+                            );
+                        } catch (error) {
+                            reject(error);
+                        }
+                    }),
+                    new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Export işlemi zaman aşımına uğradı')), 30000);
+                    })
+                ]);
+                
+                // Önceki blob URL'yi temizle
+                if (currentARBlobURL) {
+                    URL.revokeObjectURL(currentARBlobURL);
+                }
+                
+                // Blob oluştur
+                const blob = new Blob([gltf], { type: 'application/octet-stream' });
+                currentARBlobURL = URL.createObjectURL(blob);
+                
+                // Model-viewer'a yükle
+                arViewer.setAttribute('src', currentARBlobURL);
+                arTitle.textContent = `AR Görüntüleyici (${placedObjects.length} ürün)`;
+                
+                // QR kod oluştur
+                generateQRCode(currentARBlobURL);
+                
+                // Overlay'i göster
+                arOverlay.classList.add('active');
+                
+                showLoading(false);
+                showNotification(`${placedObjects.length} ürün AR'da hazır!`, 'success');
+                
+            } catch (error) {
+                console.error('AR model export hatası:', error);
+                showLoading(false);
+                showNotification('AR modeli oluşturulamadı', 'error');
+            }
+        }
+        
+        // View controls
+        function setCameraView(view) {
+            const distance = 12;
+            
+            switch(view) {
+                case 'top':
+                    camera.position.set(0, distance, 0);
+                    camera.lookAt(0, 0, 0);
+                    break;
+                case 'front':
+                    camera.position.set(0, 4, distance);
+                    camera.lookAt(0, 0, 0);
+                    break;
+                case 'side':
+                    camera.position.set(distance, 4, 0);
+                    camera.lookAt(0, 0, 0);
+                    break;
+                case 'iso':
+                    camera.position.set(8, 8, 8);
+                    camera.lookAt(0, 0, 0);
+                    break;
+            }
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+        
+        // UI Updates
+        function updateUI() {
+            // Update selected info
+const selectedInfo = document.getElementById('selectedInfo');
+            const heightControlGroup = document.getElementById('heightControlGroup');
+            const heightSlider = document.getElementById('heightSlider');
+            const heightValue = document.getElementById('heightValue');
+            
+            if (selectedObject) {
+                const pos = selectedObject.position;
+                selectedInfo.innerHTML = `
+                    <strong style="color: var(--primary);">${selectedObject.userData.productName}</strong><br>
+                    <span style="font-size: 0.75rem;">Konum: X:${pos.x.toFixed(1)} Y:${pos.y.toFixed(1)} Z:${pos.z.toFixed(1)}</span>
+                `;
+                
+                // Yükseklik kontrolünü göster ve güncelle
+                heightControlGroup.style.display = 'block';
+                heightSlider.value = pos.y;
+                heightValue.textContent = pos.y.toFixed(1);
+            } else {
+                selectedInfo.textContent = 'Henüz seçim yapılmadı';
+                // Yükseklik kontrolünü gizle
+                heightControlGroup.style.display = 'none';
+            }
+            
+            // Update buttons
+            const hasSelection = selectedObject !== null;
+            const hasPlacedObjects = placedObjects.length > 0;
+            document.getElementById('rotateBtn').disabled = !hasSelection;
+            document.getElementById('duplicateBtn').disabled = !hasSelection;
+            document.getElementById('deleteBtn').disabled = !hasSelection;
+            document.getElementById('arBtn').disabled = !hasPlacedObjects;
+            
+            // Update info panel
+            document.getElementById('infoPanel').textContent = `Nesneler: ${placedObjects.length}`;
+            
+            // Update bottom info
+            if (placingObject) {
+                updateBottomInfo('Ürünü yerleştirmek için tıklayın');
+            } else if (selectedObject) {
+                updateBottomInfo(`Seçili: ${selectedObject.userData.productName} • Sürükleyerek taşıyabilirsiniz`);
+  } else {
+                updateBottomInfo('Ürün seçmek için sol panelden bir ürün tıklayın');
+            }
+        }
+        
+        function updateBottomInfo(text) {
+            document.getElementById('bottomInfo').textContent = text;
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('active', show);
+        }
+        
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Initialize product grid - HTML'deki ürünlere event listener ekle
+        function initProductGrid() {
+            console.log('=== Ürün Kataloğu Başlatılıyor ===');
+            const productItems = document.querySelectorAll('.product-item[data-model]');
+            
+            console.log(`${productItems.length} ürün bulundu`);
+            
+            if (productItems.length === 0) {
+                console.warn('Hiç ürün bulunamadı!');
+                return;
+            }
+            
+            productItems.forEach((item, index) => {
+                const model = item.getAttribute('data-model');
+                const name = item.getAttribute('data-name');
+                const productId = item.getAttribute('data-product-id');
+                
+                if (!model || !name) {
+                    console.warn(`Ürün ${index + 1} eksik bilgi:`, { model, name });
+                    return;
+                }
+                
+                // Find product in products array or create from HTML
+                let product = products.find(p => p.id === productId);
+                if (!product) {
+                    product = {
+                        id: productId || `product-${index + 1}`,
+                        name: name,
+                        description: `3D Model: ${model}`,
+                        model: model,
+                        thumbnail: item.querySelector('img')?.src || ''
+                    };
+                }
+                
+                // Add click event directly
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Ürün tıklandı:', product);
+                    
+                    // Update active state
+                    document.querySelectorAll('.product-item').forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Add product to scene
+                    addProductToScene(product);
+                });
+                
+                // Add hover effect
+                item.style.cursor = 'pointer';
+                
+                console.log(`Ürün ${index + 1} hazır: ${name} (${model})`);
+            });
+            
+            console.log(`Ürün kataloğu hazır: ${productItems.length} ürün!`);
+        }
+        
+        // Event listeners
+        document.getElementById('rotateBtn').addEventListener('click', rotateSelected);
+        document.getElementById('duplicateBtn').addEventListener('click', duplicateSelected);
+        document.getElementById('deleteBtn').addEventListener('click', deleteSelected);
+        document.getElementById('arBtn').addEventListener('click', openARViewer);
+        
+        // Yükseklik slider
+        const heightSlider = document.getElementById('heightSlider');
+        const heightValue = document.getElementById('heightValue');
+        heightSlider.addEventListener('input', (e) => {
+            if (selectedObject) {
+                const newHeight = parseFloat(e.target.value);
+                selectedObject.position.y = newHeight;
+                heightValue.textContent = newHeight.toFixed(1);
+                updateUI();
+            }
+        });
+        
+        document.getElementById('arClose').addEventListener('click', () => {
+            document.getElementById('arOverlay').classList.remove('active');
+            // Blob URL'yi temizle
+            if (currentARBlobURL) {
+                URL.revokeObjectURL(currentARBlobURL);
+                currentARBlobURL = null;
+            }
+        });
+        
+        
+        document.querySelectorAll('.view-btn[data-view]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.view-btn[data-view]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                setCameraView(btn.dataset.view);
+            });
+        });
+        
+        // Yerleştirme butonları
+        document.getElementById('placeSideBySideBtn').addEventListener('click', placeSideBySide);
+        document.getElementById('placeOppositeBtn').addEventListener('click', placeOpposite);
+        
+        // Initialize - Three.js yüklendikten sonra çağrılacak
+        function initializeMainApp() {
+            console.log('Ana uygulama başlatılıyor...');
+            
+            // Three.js kontrolü
+            if (typeof THREE === 'undefined' || !THREE.WebGLRenderer) {
+                console.error('Three.js henüz yüklenmedi!');
+                alert('Three.js kütüphanesi yüklenemedi. Lütfen internet bağlantınızı kontrol edin ve sayfayı yenileyin.');
+                return;
+            }
+            
+            console.log('Three.js hazır, sahne başlatılıyor...');
+            
+            // Önce Three.js sahnesini başlat
+initThree();
+            
+            // Sonra ürün kataloğunu başlat (scene hazır olmalı)
+            setTimeout(() => {
+                initProductGrid();
+                updateUI();
+                showNotification('3D Bahçe Tasarımcısı hazır!', 'success');
+                console.log('Uygulama tamamen hazır!');
+                
+                // URL parametrelerini kontrol et - AR modu için
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('ar') === 'true') {
+                    const sceneDataEncoded = urlParams.get('scene');
+                    if (sceneDataEncoded) {
+                        try {
+                            // Scene data'yı decode et
+                            const sceneDataJson = decodeURIComponent(escape(atob(sceneDataEncoded)));
+                            const sceneData = JSON.parse(sceneDataJson);
+                            
+                            // Sahnedeki ürünleri yeniden oluştur
+                            loadSceneForAR(sceneData);
+                        } catch (error) {
+                            console.error('AR scene yükleme hatası:', error);
+                            showNotification('AR sahne yüklenemedi', 'error');
+                        }
+                    }
+                }
+            }, 100);
+        }
+</script>
+</body>
+</html>
