@@ -789,7 +789,7 @@
                 <div class="section-title">Ürün Kataloğu</div>
                 <div class="product-grid" id="productGrid">
                     <!-- Products -->
-                    <div class="product-item" data-product-id="product-1" data-model="https://github.com/Azraabsr/3DTasarim/releases/download/v1.0.0onpublish/C002.glb" data-name="Terra Serisi">
+                    <div class="product-item" data-product-id="product-1" data-model="/C002.glb" data-name="Terra Serisi">
                         <img src="terralarge.png" alt="Terra Serisi" class="product-thumb" 
                              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><rect fill=%22%23334155%22 width=%22200%22 height=%22200%22/><rect fill=%22%231e293b%22 x=%2220%22 y=%2220%22 width=%22160%22 height=%22160%22 rx=%228%22/><text fill=%22%2394a3b8%22 font-family=%22sans-serif%22 font-size=%2216%22 font-weight=%22bold%22 x=%2250%25%22 y=%2245%25%22 text-anchor=%22middle%22>Terra%20Serisi</text><text fill=%22%236366f1%22 font-family=%22sans-serif%22 font-size=%2212%22 x=%2250%25%22 y=%2260%25%22 text-anchor=%22middle%22>3D%20Model</text><text fill=%22%238b5cf6%22 font-family=%22monospace%22 font-size=%2210%22 x=%2250%25%22 y=%2275%25%22 text-anchor=%22middle%22>C002.glb</text></svg>'">
                         <div class="product-info">
@@ -801,7 +801,7 @@
         </div>
       </div>
 
-                    <div class="product-item" data-product-id="product-2" data-model="https://github.com/Azraabsr/3DTasarim/releases/download/v1.0.0onpublish/C015.glb" data-name="Noka Serisi">
+                    <div class="product-item" data-product-id="product-2" data-model="/C015.glb" data-name="Noka Serisi">
                         <img src="pom.png" alt="Noka Serisi" class="product-thumb"
                              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22><rect fill=%22%23334155%22 width=%22200%22 height=%22200%22/><rect fill=%22%231e293b%22 x=%2220%22 y=%2220%22 width=%22160%22 height=%22160%22 rx=%228%22/><text fill=%22%2394a3b8%22 font-family=%22sans-serif%22 font-size=%2216%22 font-weight=%22bold%22 x=%2250%25%22 y=%2245%25%22 text-anchor=%22middle%22>Noka%20Serisi</text><text fill=%22%236366f1%22 font-family=%22sans-serif%22 font-size=%2212%22 x=%2250%25%22 y=%2260%25%22 text-anchor=%22middle%22>3D%20Model</text><text fill=%22%238b5cf6%22 font-family=%22monospace%22 font-size=%2210%22 x=%2250%25%22 y=%2275%25%22 text-anchor=%22middle%22>C015.glb</text></svg>'">
                         <div class="product-info">
@@ -1100,14 +1100,14 @@
                 id: 'product-1',
                 name: 'Terra Serisi',
                 description: '3D Model: C002.glb',
-                model: `https://github.com/${GITHUB_REPO}/releases/download/${GITHUB_RELEASE_TAG}/C002.glb`,
+                model: '/C002.glb', // Vercel root'tan yükle
                 thumbnail: 'terralarge.png'
             },
             {
                 id: 'product-2',
                 name: 'Noka Serisi',
                 description: '3D Model: C015.glb',
-                model: `https://github.com/${GITHUB_REPO}/releases/download/${GITHUB_RELEASE_TAG}/C015.glb`,
+                model: '/C015.glb', // Vercel root'tan yükle
                 thumbnail: 'pom.png'
             }
         ];
