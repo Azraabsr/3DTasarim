@@ -1248,10 +1248,13 @@
         function loadProduct(product) {
             showLoading(true);
             
-            // Dosya yolunu düzelt - eğer göreceli yol ise ./ ekle
+            // Dosya yolunu düzelt - Vercel'de root'tan başla
             let modelPath = product.model;
-            if (!modelPath.startsWith('http://') && !modelPath.startsWith('https://') && !modelPath.startsWith('/') && !modelPath.startsWith('./')) {
-                modelPath = './' + modelPath;
+            if (!modelPath.startsWith('http://') && !modelPath.startsWith('https://')) {
+                // Vercel'de root'tan başla
+                if (!modelPath.startsWith('/')) {
+                    modelPath = '/' + modelPath;
+                }
             }
             
             return new Promise((resolve, reject) => {
