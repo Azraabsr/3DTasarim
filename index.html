@@ -1091,19 +1091,23 @@
         const GROUND_SIZE = 50;
         
         // Product catalog - GLB dosyaları
+        // GitHub Releases kullan (tag oluşturduktan sonra)
+        const GITHUB_REPO = 'Azraabsr/3DTasarim';
+        const GITHUB_RELEASE_TAG = 'v1.0.0'; // Release oluşturduktan sonra tag'i buraya yazın
+        
         const products = [
             {
                 id: 'product-1',
                 name: 'Terra Serisi',
                 description: '3D Model: C002.glb',
-                model: 'C002.glb',
+                model: `https://github.com/${GITHUB_REPO}/releases/download/${GITHUB_RELEASE_TAG}/C002.glb`,
                 thumbnail: 'terralarge.png'
             },
             {
                 id: 'product-2',
                 name: 'Noka Serisi',
                 description: '3D Model: C015.glb',
-                model: 'C015.glb',
+                model: `https://github.com/${GITHUB_REPO}/releases/download/${GITHUB_RELEASE_TAG}/C015.glb`,
                 thumbnail: 'pom.png'
             }
         ];
